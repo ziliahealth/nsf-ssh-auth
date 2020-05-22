@@ -80,6 +80,18 @@ Nix
 
  -  [LRFC-0002](./doc/lrfc/0002.md): Auto expiring ssh authorization
 
+ -  Add LRFC for multi file format support.
+
+ -  Auth dir -> allow to specify what content is to be loaded (user, groups, auth, etc).
+
+    This would optimize some workflows.
+
+ -  `groups.json` -> `members-from-groups` / `member-from` to reuse the members
+    from other groups.
+
+    Need to check the introduced possibility of recursion.
+
+
 Python
 ------
 

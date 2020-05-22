@@ -86,7 +86,7 @@ rec {
     };
 
     dev = mkShell rec {
-      name = "${default.pname}-build-shell";
+      name = "${default.pname}-dev-shell";
 
       PYTHONPATH = "";
       MYPYPATH = "";
