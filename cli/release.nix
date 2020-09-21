@@ -1,4 +1,16 @@
-{ pkgs ? import <nixpkgs> {} }:
+{ pkgs ? null {} } @ args:
+
+let
+  pinnedNixpkgs = builtins.fetchTarball {
+      # Latest `release-19.09`.
+      url = "https://github.com/jraygauthier/nixpkgs/archive/289466dd6a11c65a7de4a954d6ebf66c1ad07652.tar.gz";
+      sha256 = "0r5ja052s86fr54fm1zlhld3fwawz2w1d1gd6vbvpjrpjfyajibn";
+    };
+
+  pkgs = if args ? pkgs && null != args.pkgs
+    then args.pkgs
+    else import pinnedNixpkgs { config = { allowUnfree = false; }; };
+in
 
 let
   inherit (pkgs)

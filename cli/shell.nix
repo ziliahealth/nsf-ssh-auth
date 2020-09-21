@@ -1,4 +1,3 @@
-{ nixpkgs ? <nixpkgs>
-, pkgs ? import nixpkgs {} } @ args:
+{ pkgs ? null } @ args:
 
 (import ./release.nix args).shell.dev
