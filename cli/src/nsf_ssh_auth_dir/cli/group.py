@@ -1,8 +1,7 @@
 import click
 import logging
 
-from .cli_group_member import member
-
+from .group_member import member
 
 @click.group()
 def group() -> None:

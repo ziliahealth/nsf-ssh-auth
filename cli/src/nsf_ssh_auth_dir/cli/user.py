@@ -1,7 +1,7 @@
 import click
 import logging
 
-from .cli_user_pubkey import pubkey
+from .user_pubkey import pubkey
 
 
 @click.group()

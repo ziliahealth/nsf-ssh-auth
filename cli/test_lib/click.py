@@ -10,7 +10,7 @@ def invoke_cli(
         args: Union[str, Iterable[str], None] = None,
         input: Optional[IO] = None,
         env: Optional[Mapping[str, str]] = None,
-        catch_exceptions: bool = True,
+        catch_exceptions: bool = False,
         color: bool = False,
         mix_stderr: bool = False,
         **extra: Any

@@ -1,52 +1,15 @@
-{ pkgs ? null {} } @ args:
+{ pkgs ? null } @ args:
 
 let
-  pinnedNixpkgs = builtins.fetchTarball {
-      # Latest `release-19.09`.
-      url = "https://github.com/jraygauthier/nixpkgs/archive/289466dd6a11c65a7de4a954d6ebf66c1ad07652.tar.gz";
-      sha256 = "0r5ja052s86fr54fm1zlhld3fwawz2w1d1gd6vbvpjrpjfyajibn";
-    };
-
-  pkgs = if args ? pkgs && null != args.pkgs
-    then args.pkgs
-    else import pinnedNixpkgs { config = { allowUnfree = false; }; };
+  pkgs = (import (../.nix/release.nix) {}).ensurePkgs args;
 in
 
-let
-  inherit (pkgs)
-    callPackage
-    python3Packages
-    mkShell
-    bash-completion
-    writeShellScript;
+with pkgs;
 
+let
   pythonPackages = python3Packages;
 
   default = pythonPackages.callPackage ./. {};
-
-  shellHookLib = writeShellScript "python-project-shell-hook-lib.sh" ''
-    sh_hook_py_set_interpreter_env() {
-      python_interpreter="''${1?}"
-      if ! [[ -e "$python_interpreter" ]]; then
-        1>&2 echo "ERROR: ''${FUNCNAME[0]}: Cannot find expected " \
-          "'$python_interpreter' python interpreter path."
-        exit 1
-      fi
-      if [[ -d "$python_interpreter" ]] || ! [[ -x "$python_interpreter" ]]; then
-        1>&2 echo "ERROR: ''${FUNCNAME[0]}: Specified python interpreter path " \
-          "'$python_interpreter' does not refer to a executable program."
-        exit 1
-      fi
-
-      export "PYTHON_INTERPRETER=$python_interpreter"
-    }
-
-    sh_hook_py_set_interpreter_env_from_path() {
-      local python_interpreter
-      python_interpreter="$(which python)"
-      sh_hook_py_set_interpreter_env "$python_interpreter"
-    }
-  '';
 
   dev = default.overrideAttrs (oldAttrs: {
     buildInputs = oldAttrs.buildInputs
@@ -59,10 +22,12 @@ let
         isort
       ]);
 
-    shellHook = ''
-      ${oldAttrs.shellHook}
-      source ${shellHookLib}
-      sh_hook_py_set_interpreter_env_from_path
+    shellHook = with nsf-py-nix-lib; with nsf-shc-nix-lib; ''
+      ${nsfPy.shell.runSetuptoolsShellHook "${builtins.toString ./.}" default}
+      ${nsfShC.shell.loadClickExesBashCompletion [ "nsf-ssh-auth-dir" ]}
+
+      source ${nsfPy.shell.shellHookLib}
+      nsf_py_set_interpreter_env_from_path
     '';
   });
 
@@ -77,23 +42,9 @@ rec {
 
       buildInputs = [ default ];
 
-      shellHook = ''
-        # Bring xdg data dirs of dependencies and current program into the
-        # environement. This will allow us to get shell completion if any
-        # and there might be other benefits as well.
-        xdg_inputs=( "''${buildInputs[@]}" )
-        for p in "''${xdg_inputs[@]}"; do
-          if [[ -d "$p/share" ]]; then
-            XDG_DATA_DIRS="''${XDG_DATA_DIRS}''${XDG_DATA_DIRS+:}$p/share"
-          fi
-        done
-        export XDG_DATA_DIRS
-
-        # Make sure we support the pure case as well as non nixos cases
-        # where dynamic bash completions were not sourced.
-        if ! type _completion_loader > /dev/null; then
-          . ${bash-completion}/etc/profile.d/bash_completion.sh
-        fi
+      shellHook = with nsf-shc-nix-lib; ''
+        ${nsfShC.env.exportXdgDataDirsOf ([ default ] ++ default.buildInputs)}
+        ${nsfShC.env.ensureDynamicBashCompletionLoaderInstalled}
       '';
     };
 
