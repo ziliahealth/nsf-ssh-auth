@@ -4,7 +4,7 @@ Readme
 A set of tools to help manage and organize ssh authorizations in a declarative
 way compatible with nix / nixos.
 
-Currently used as part of [nixos-secure-factory], hence the `nixos-sf-` prefix.
+Currently used as part of [nixos-secure-factory], hence the `nsf-` prefix.
 However, this can perfectly be used as a standalone library / tool.
 
 [nixos-secure-factory]: https://github.com/jraygauthier/nixos-secure-factory
