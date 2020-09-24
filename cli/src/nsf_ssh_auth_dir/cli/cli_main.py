@@ -6,6 +6,7 @@ from .git import git
 from ._ctx import CliCtx, pass_init_ctx, init_cli_ctx
 from ._log import setup_verbose
 
+
 @click.group()
 @click.pass_context
 def cli(ctx: click.Context) -> None:
