@@ -11,10 +11,10 @@ def git() -> None:
 @git.command()
 def status() -> None:
     """Run `git` status for the current *ssh auth dir*."""
-    logging.info("git status")
+    logging.info("git status: UNIMPLEMENTED")
 
 
 @git.command()
 def diff() -> None:
     """Run `git` diff for the current *ssh auth dir*."""
-    logging.info("git diff")
+    logging.info("git diff: UNIMPLEMENTED")

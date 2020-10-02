@@ -4,6 +4,12 @@
 , yq
 } @ args:
 
+/*
+  Module defining the ssh dir concept.
+  Should match `src/nsf_ssh_auth_dir/repo_ssh_auth_dir.py` on the python side.
+  TODO: It would be best were its default values shared via a common file.
+*/
+
 let
   callPackage = lib.callPackageWith args;
   coreModule = callPackage ./core.nix {};

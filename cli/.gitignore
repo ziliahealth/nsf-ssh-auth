@@ -1,0 +1,7 @@
+# Allow us to work play with the cli
+# in cwd.
+/public-keys/
+/authorized-on/
+/users.json
+/groups.json
+/authorized-always.json

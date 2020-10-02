@@ -1,30 +1,48 @@
+from abc import ABC
+from typing import Any, Callable, Dict, Optional
+
 import click
-from pathlib import Path
-from typing import Optional
-from dataclasses import dataclass
+
+from nsf_ssh_auth_dir.click.ctx_dict import (
+    find_mandatory_ctx_dict_instance,
+    mk_ctx_dict_obj,
+)
 
 
-@dataclass
-class CliCtx:
-    # The *ssh auth dir* over which to operate.
-    cwd: Path
-    # The current user's id if available.
-    user_id: Optional[str]
-
-    @classmethod
-    def mk_default(cls) -> 'CliCtx':
-        return cls(
-            cwd=Path.cwd(),
-            user_id=None
-        )
+class CliCtxDbBase(ABC):
+    KEY = "nsf_ssh_auth_dir_cli_db"
+    MkFnT = Callable[[click.Context], 'CliCtxDbBase']
 
 
-def init_cli_ctx(
-        ctx: click.Context, init_ctx: CliCtx
-) -> CliCtx:
-    assert ctx.obj is None
-    ctx.obj = init_ctx
-    return init_ctx
+class _CliCtxLazyDb:
+    def __init__(self, mk_db: CliCtxDbBase.MkFnT) -> None:
+        self._mk_db = mk_db
+        self._db = None
+
+    def __call__(self, ctx: click.Context) -> CliCtxDbBase:
+        if self._db is not None:
+            return self._db
+
+        instance = self._mk_db(ctx)
+        return instance
 
 
-pass_init_ctx = click.make_pass_decorator(CliCtx)
+def mk_cli_db_obj_d(
+        mk_db: CliCtxDbBase.MkFnT, db_key: Optional[str] = None
+) -> Dict[str, Any]:
+    if db_key is None:
+        db_key = CliCtxDbBase.KEY
+
+    return mk_ctx_dict_obj({
+        db_key: _CliCtxLazyDb(mk_db)
+    })
+
+
+def get_cli_ctx_db_base(
+        ctx: click.Context, db_key: Optional[str] = None
+) -> CliCtxDbBase:
+    if db_key is None:
+        db_key = CliCtxDbBase.KEY
+
+    lazy_db = find_mandatory_ctx_dict_instance(ctx, db_key, _CliCtxLazyDb)
+    return lazy_db(ctx)

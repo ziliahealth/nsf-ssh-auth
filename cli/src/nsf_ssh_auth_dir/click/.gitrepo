@@ -1,0 +1,12 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = git@github.com:jraygauthier/nsf-py-click.git
+	branch = master
+	commit = 3efbd9ee523ff5c86e8d25d7cf64dfa56eb7ac06
+	method = merge
+	cmdver = 0.4.1
+	parent = 1781323ab150bd32a78718fbb6cf04070285b693
