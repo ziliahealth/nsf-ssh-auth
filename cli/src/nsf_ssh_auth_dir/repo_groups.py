@@ -94,14 +94,15 @@ class SshGroup:
     def members(self) -> Iterator[SshUser]:
         yield from self.iter_members()
 
-    def add_member_by_id(self, user_id: str) -> None:
-        if user_id not in self._users:
+    def add_member_by_id(
+            self, user_id: str, force: bool = False) -> None:
+        if not force and user_id not in self._users:
             raise SshGroupsRepoInvalidUserError(
                 f"Failed to add user '{user_id}' to group "
                 f"'{self.name}'. User does not exists."
             )
 
-        if user_id in self._raw.members:
+        if not force and user_id in self._raw.members:
             raise SshGroupsRepoUserAlreadyGroupMemberError(
                 f"Failed to add user '{user_id}' to group "
                 f"'{self.name}'. Already a member of this group."
@@ -110,14 +111,16 @@ class SshGroup:
         self._raw.members.add(user_id)
         self._raw = self._update_raw_fn(self._raw)
 
-    def rm_member_by_id(self, member_id: str) -> None:
+    def rm_member_by_id(
+            self, member_id: str, force: bool = False) -> None:
         try:
             self._raw.members.remove(member_id)
         except KeyError as e:
-            raise SshGroupsRepoKeyAccessError(
-                f"No such '{self.name}' group member: '{member_id}'. "
-                "Can't be removed."
-            ) from e
+            if not force:
+                raise SshGroupsRepoKeyAccessError(
+                    f"No such '{self.name}' group member: '{member_id}'. "
+                    "Can't be removed."
+                ) from e
         self._raw = self._update_raw_fn(self._raw)
 
 
@@ -183,7 +186,7 @@ class SshGroupsRepo:
             yield self._mk_group(group)
 
     def __contains__(self, groupname: str) -> bool:
-        raw_groups = self._groups_loader.load()
+        raw_groups = self._load_raw()
         return groupname in raw_groups.ssh_groups
 
     def _get_w_raw_set(self, groupname: str) -> Tuple[SshGroup, SshRawGroups]:
@@ -250,11 +253,14 @@ class SshGroupsRepo:
         return self.add(groupname, exist_ok=True)
 
     def rm(
-            self, groupname: str
-    ) -> SshGroup:
-        group, raw_groups = self._get_w_raw_set(groupname)
+            self, groupname: str, force: bool = False
+    ) -> None:
+        try:
+            group, raw_groups = self._get_w_raw_set(groupname)
 
-        # Should exist as we successfully retrieved the group.
-        del raw_groups.ssh_groups[groupname]
-        self._dump_raw(raw_groups)
-        return group
+            # Should exist as we successfully retrieved the group.
+            del raw_groups.ssh_groups[groupname]
+            self._dump_raw(raw_groups)
+        except (SshGroupsRepoFileAccessError, SshGroupsRepoKeyAccessError):
+            if not force:
+                raise  # re-raise

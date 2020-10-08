@@ -155,7 +155,7 @@ class SshUsersRepo:
                 raw_users.ssh_user_defaults)
 
     def __contains__(self, username: str) -> bool:
-        raw_users = self._users_loader.load()
+        raw_users = self._load_raw()
         return username in raw_users.ssh_users
 
     def _get_w_raw_set(self, username: str) -> Tuple[SshUser, SshRawUsers]:
@@ -223,13 +223,19 @@ class SshUsersRepo:
         return user
 
     def rm(
-            self, username: str, with_pubkeys=True
-    ) -> SshUser:
-        user, raw_users = self._get_w_raw_set(username)
-        if with_pubkeys:
-            user.pubkeys.rm_all()
+            self, username: str, with_pubkeys=True,
+            force: bool = False
+    ) -> None:
+        try:
+            user, raw_users = self._get_w_raw_set(username)
 
-        # Should exist as we successfully retrieved the user.
-        del raw_users.ssh_users[username]
-        self._dump_raw(raw_users)
-        return user
+            if with_pubkeys:
+                user.pubkeys.rm_all()
+
+            # Should exist as we successfully retrieved the user.
+            del raw_users.ssh_users[username]
+            self._dump_raw(raw_users)
+        except (SshUsersRepoFileAccessError, SshUsersRepoKeyAccessError):
+            if not force:
+                raise  # re-raise
+

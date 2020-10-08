@@ -2,6 +2,23 @@ import click
 from typing import Any
 
 
+def cli_force_flag() -> Any:
+    return click.option(
+        "--force", "-f", "force",
+        is_flag=True,
+        default=False,
+        help=(
+            "Allow one to force some operations to proceed without "
+            "error.\n\n"
+            "Sometimes it might be used to have the operation "
+            "not error out when (add a user when it already exists).\n\n"
+            "Other use case is to tell the cli that you know what you"
+            "are doing: proceed with authorization even tough the "
+            "specified user / group does not exists."),
+        # autocompletion=list_ac_available_device_user_ids
+    )
+
+
 def cli_user_groups_option() -> Any:
     return click.option(
         "--group", "-g", "user_group_ids",

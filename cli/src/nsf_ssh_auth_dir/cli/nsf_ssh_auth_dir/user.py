@@ -16,6 +16,7 @@ from nsf_ssh_auth_dir.cli.options import (
     cli_device_user_to_all_flag,
     cli_device_user_to_option,
     cli_user_groups_option,
+    cli_force_flag
 )
 from nsf_ssh_auth_dir.click.error import CliError, echo_warning
 from nsf_ssh_auth_dir.repo_auth_device_users import (
@@ -27,6 +28,7 @@ from nsf_ssh_auth_dir.repo_users import (
     SshUsersRepoDuplicateError,
     SshUsersRepoFileAccessError,
     SshUsersRepoKeyAccessError,
+    SshUsersRepoAccessError
 )
 
 from ._auth_tools import (
@@ -61,12 +63,14 @@ def ls(ctx: CliCtx) -> None:
 @cli_ssh_user_id_argument()
 @cli_ssh_pubkey_argument()
 @cli_user_groups_option()
+@cli_force_flag()
 @pass_cli_ctx
 def add(
         ctx: CliCtx,
         ssh_user_id: Optional[str],
         ssh_pubkey: Optional[str],
-        user_group_ids: List[str]
+        user_group_ids: List[str],
+        force: bool
 ) -> None:
     """Add a new *ssh user*.
 
@@ -89,8 +93,9 @@ def add(
 
         Otherwise, will attempt to copy it from the clipboard.
 
-    TODO: -f/--force: Prevent the user already exists error
-    and allow for missing group creation.
+    Use '-f/--force' to prevent the user already exists error
+    and allow for automatic missing group creation (combined
+    with '-g/--group').
     """
     user_id = ensure_ssh_user_id_or_fallback_or_fail(
         ssh_user_id, ctx.user_id)
@@ -99,26 +104,43 @@ def add(
         ssh_pubkey, ssh_user_id, ctx.user_id)
 
     try:
-        ctx.repo.users.add(user_id, pubkey)
+        ctx.repo.users.add(
+            user_id, pubkey, exist_ok=force)
     except SshUsersRepoDuplicateError as e:
         raise CliError(str(e)) from e
 
-    add_user_to_groups(ctx.repo, user_id, user_group_ids)
+    add_user_to_groups(
+        ctx.repo, user_id, user_group_ids,
+        force=force
+    )
 
 
 @user.command()
 @cli_ssh_user_id_argument()
+@cli_force_flag()
 @pass_cli_ctx
-def rm(ctx: CliCtx, ssh_user_id: Optional[str]) -> None:
+def rm(
+        ctx: CliCtx,
+        ssh_user_id: Optional[str],
+        force: bool
+) -> None:
     """Remove an existing *ssh user*."""
     user_id = ensure_ssh_user_id_or_fallback_or_fail(
         ssh_user_id, ctx.user_id)
 
-    deauthorize_user_from_all_auth_device_users(ctx.repo, user_id)
-    rm_user_from_all_groups(ctx.repo, user_id)
-
+    # Ensure the user exists before proceeding.
     try:
         ctx.repo.users.rm(user_id)
+    except SshUsersRepoAccessError as e:
+        if not force:
+            raise CliError(str(e)) from e
+
+    deauthorize_user_from_all_auth_device_users(
+        ctx.repo, user_id, force=True)
+    rm_user_from_all_groups(ctx.repo, user_id, force=True)
+
+    try:
+        ctx.repo.users.rm(user_id, force=force)
     except (SshUsersRepoFileAccessError, SshUsersRepoKeyAccessError) as e:
         raise CliError(str(e)) from e
 
@@ -129,6 +151,7 @@ def rm(ctx: CliCtx, ssh_user_id: Optional[str]) -> None:
 @cli_device_user_to_all_flag()
 @cli_device_state_on_option()
 @cli_device_state_always_flag()
+@cli_force_flag()
 @pass_cli_ctx
 def authorize(
         ctx: CliCtx,
@@ -136,7 +159,8 @@ def authorize(
         device_user_ids: List[str],
         device_user_all: bool,
         device_state_ons: List[str],
-        device_state_always: bool
+        device_state_always: bool,
+        force: bool
 ) -> None:
     """Authorize a single *ssh user* to *device user(s)*."""
     user_id = ensure_ssh_user_id_or_fallback_or_fail(
@@ -147,17 +171,19 @@ def authorize(
         device_user_ids, device_user_all,
         device_state_ons, device_state_always)
 
-    for du in dus:
-        try:
-            du.authorize_user_by_id(user_id)
-        except SshAuthRepoUserAlreadyAuthorizedError:
-            echo_warning(
-                f"User '{user_id}' already authorized to *device user* "
-                f"'{du.formatted_name}'. on '{du.formatted_state_name}' state. "
-                "Skipping.")
-        except SshAuthRepoInvalidUserError as e:
-            raise CliError(str(e)) from e
-
+    try:
+        for du in dus:
+            try:
+                du.authorize_user_by_id(user_id, force=force)
+            except SshAuthRepoUserAlreadyAuthorizedError:
+                echo_warning(
+                    f"User '{user_id}' already authorized to *device user* "
+                    f"'{du.formatted_name}'. on '{du.formatted_state_name}' state. "
+                    "Skipping.")
+            except SshAuthRepoInvalidUserError as e:
+                raise CliError(str(e)) from e
+    except SshUsersRepoAccessError as e:
+        raise CliError(str(e)) from e
 
 @user.command()
 @cli_ssh_user_id_argument()
@@ -165,6 +191,7 @@ def authorize(
 @cli_device_user_from_any_flag()
 @cli_device_state_on_option()
 @cli_device_state_always_flag()
+@cli_force_flag()
 @pass_cli_ctx
 def deauthorize(
         ctx: CliCtx,
@@ -172,7 +199,8 @@ def deauthorize(
         device_user_ids: List[str],
         device_user_all: bool,
         device_state_ons: List[str],
-        device_state_always: bool
+        device_state_always: bool,
+        force: bool
 ) -> None:
     """De-authorize a single *ssh user* from *device user(s)*."""
     user_id = ensure_ssh_user_id_or_fallback_or_fail(
@@ -192,7 +220,7 @@ def deauthorize(
 
     for du in dus:
         try:
-            du.deauthorize_user_by_id(user_id)
+            du.deauthorize_user_by_id(user_id, force=force)
         except SshAuthRepoKeyAccessError:
             echo_warning(
                 f"User '{user_id}' already not authorized to *device user* "

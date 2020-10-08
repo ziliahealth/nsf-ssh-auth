@@ -140,14 +140,15 @@ class SshAuthDeviceUser:
     def authorized_users(self) -> Iterator[SshUser]:
         yield from self.iter_authorized_users()
 
-    def authorize_user_by_id(self, user_id: str) -> None:
-        if user_id not in self._users:
+    def authorize_user_by_id(
+            self, user_id: str, force: bool = False) -> None:
+        if not force and user_id not in self._users:
             raise SshAuthRepoInvalidUserError(
                 f"Failed to authorize user '{user_id}' to *device user* "
                 f"'{self.formatted_name}'. User does not exists."
             )
 
-        if user_id in self.authorized_users_names:
+        if not force and user_id in self.authorized_users_names:
             raise SshAuthRepoUserAlreadyAuthorizedError(
                 f"Failed to authorize user '{user_id}' to *device user* "
                 f"'{self.formatted_name}'. Already authorized."
@@ -156,17 +157,19 @@ class SshAuthDeviceUser:
         self._raw.ssh_users.add(user_id)
         self._raw = self._update_raw_fn(self._raw)
 
-    def deauthorize_user_by_id(self, authorized_user_id: str) -> None:
+    def deauthorize_user_by_id(
+            self, authorized_user_id: str, force: bool = False) -> None:
         # IDEA: Consider adding a flag to warn when user part of one of
         # the authorized group.
         try:
             self._raw.ssh_users.remove(authorized_user_id)
         except KeyError as e:
-            raise SshAuthRepoKeyAccessError(
-                f"No such user: '{authorized_user_id}' "
-                "authorized to *device user* '{self.formatted_name}'."
-                "Can't be deauthorized."
-            ) from e
+            if not force:
+                raise SshAuthRepoKeyAccessError(
+                    f"No such user: '{authorized_user_id}' "
+                    "authorized to *device user* '{self.formatted_name}'."
+                    "Can't be deauthorized."
+                ) from e
         self._raw = self._update_raw_fn(self._raw)
 
     @property
@@ -191,14 +194,15 @@ class SshAuthDeviceUser:
     def authorized_groups(self) -> Iterator[SshGroup]:
         yield from self.iter_authorized_groups()
 
-    def authorize_group_by_id(self, group_id: str) -> None:
-        if group_id not in self._groups:
+    def authorize_group_by_id(
+            self, group_id: str, force: bool = False) -> None:
+        if not force and group_id not in self._groups:
             raise SshAuthRepoInvalidGroupError(
                 f"Failed to authorize group '{group_id}' to *device user* "
                 f"'{self.formatted_name}'. Group does not exists."
             )
 
-        if group_id in self.authorized_groups_names:
+        if not force and group_id in self.authorized_groups_names:
             raise SshAuthRepoGroupAlreadyAuthorizedError(
                 f"Failed to authorize group '{group_id}' to *device user* "
                 f"'{self.formatted_name}'. Already authorized."
@@ -207,15 +211,17 @@ class SshAuthDeviceUser:
         self._raw.ssh_groups.add(group_id)
         self._raw = self._update_raw_fn(self._raw)
 
-    def deauthorize_group_by_id(self, authorized_group_id: str) -> None:
+    def deauthorize_group_by_id(
+            self, authorized_group_id: str, force: bool = False) -> None:
         try:
             self._raw.ssh_groups.remove(authorized_group_id)
         except KeyError as e:
-            raise SshAuthRepoKeyAccessError(
-                f"No such group: '{authorized_group_id}' "
-                f"authorized to *device user* '{self.formatted_name}'."
-                "Can't be deauthorized."
-            ) from e
+            if not force:
+                raise SshAuthRepoKeyAccessError(
+                    f"No such group: '{authorized_group_id}' "
+                    f"authorized to *device user* '{self.formatted_name}'."
+                    "Can't be deauthorized."
+                ) from e
         self._raw = self._update_raw_fn(self._raw)
 
 
@@ -292,7 +298,7 @@ class SshAuthDeviceUsersRepo:
             yield self._mk_du(raw_du)
 
     def __contains__(self, du_name: str) -> bool:
-        raw_auth = self._auth_loader.load()
+        raw_auth = self._load_raw()
         return du_name in raw_auth.device_users
 
     def _get_w_raw_set(self, du_name: str) -> Tuple[SshAuthDeviceUser, SshRawAuth]:

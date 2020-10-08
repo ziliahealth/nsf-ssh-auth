@@ -102,13 +102,9 @@ def dump_ssh_group_to_plain_d(
 
     members = sorted(group.members)
 
-    # Do not needlessly pollute file with empty sections.
-    add_cond_to_dict_or_rm_key(
-        bool(members),
-        out_d, "members",
-        members
-    )
-
+    # We cannot at this time remove the 'members' field as it
+    # is required by the nix-lib.
+    out_d["members"] = members
     return out_d
 
 

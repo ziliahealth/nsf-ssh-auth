@@ -77,11 +77,14 @@ class DeviceUserInfoUI(NamedTuple):
 
 def deauthorize_user_from_all_auth_device_users(
         repo: SshAuthDirRepo,
-        user_id: str) -> Set[DeviceUserInfoUI]:
+        user_id: str,
+        force: bool = False
+) -> Set[DeviceUserInfoUI]:
     out = set()
     for du in iter_all_auth_device_users(repo):
         try:
-            du.deauthorize_user_by_id(user_id)
+            # TODO: We might want to warn instead. Consider.
+            du.deauthorize_user_by_id(user_id, force=force)
             out.add(DeviceUserInfoUI.mk_from(du))
         except SshAuthRepoKeyAccessError:
             pass
@@ -91,11 +94,13 @@ def deauthorize_user_from_all_auth_device_users(
 
 def deauthorize_group_from_all_auth_device_users(
         repo: SshAuthDirRepo,
-        group_id: str) -> Set[DeviceUserInfoUI]:
+        group_id: str,
+        force: bool = False
+) -> Set[DeviceUserInfoUI]:
     out = set()
     for du in iter_all_auth_device_users(repo):
         try:
-            du.deauthorize_group_by_id(group_id)
+            du.deauthorize_group_by_id(group_id, force=force)
             out.add(DeviceUserInfoUI.mk_from(du))
         except SshAuthRepoKeyAccessError:
             pass

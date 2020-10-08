@@ -50,6 +50,9 @@ class SshAuthDirFileFormatDefaultPolicy(
 
     def iter_target_filenames_in(
             self, dir: Path) -> Iterator[Path]:
+        if not dir.exists():
+            return
+
         for fp in dir.iterdir():
             if fp.is_dir():
                 continue
