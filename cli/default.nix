@@ -12,7 +12,7 @@
 
 buildPythonPackage rec  {
   pname = "nsf-ssh-auth-cli";
-  version = "0.0.0";
+  version = "0.1.0";
   src = nix-gitignore.gitignoreSourcePure ../.gitignore ./.;
   buildInputs = [];
 
