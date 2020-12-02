@@ -217,7 +217,7 @@ rec {
   mergeDeviceUserAuthorizedSshGroupsAndUsersAsSshUsersBundle = amPol: listOfSshGroupBundles: sshUsersBundle:
     {
       # TODO: Specialize `defUsersMergeOpts`  in order to print improved error messages.
-      sshUsers = mergeListOfUserAttrSets amPol.sshUsers defUsersMergeOpts (
+      sshUsers = mergeListOfUserAttrSets amPol.ssh-user defUsersMergeOpts (
             (lib.attrsets.mapAttrsToList (k: v: v.members) listOfSshGroupBundles)
          ++ [ sshUsersBundle ]
         );

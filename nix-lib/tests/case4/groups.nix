@@ -1,0 +1,23 @@
+{
+  ssh-groups = {
+    my-group-1 = {
+      members = [
+        "my-ssh-user-a"
+        "my-ssh-user-b"
+      ];
+    };
+    my-group-2 = {
+      members = [
+        "my-ssh-user-b"
+        "my-ssh-user-c"
+      ];
+    };
+    my-group-3 = {
+      members = [
+        "my-ssh-user-b"
+        "my-ssh-user-c"
+        "my-ssh-user-d"
+      ];
+    };
+  };
+}

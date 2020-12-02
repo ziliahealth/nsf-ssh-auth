@@ -1,6 +1,8 @@
-{ nixpkgs ? <nixpkgs>
-, pkgs ? import nixpkgs {}
-}:
+{ pkgs ? null } @ args:
+
+let
+  pkgs = (import (../../.nix/release.nix) {}).ensurePkgs args;
+in
 
 let
   inherit (pkgs)

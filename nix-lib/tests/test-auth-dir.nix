@@ -37,4 +37,22 @@ with sshAuthLib;
       expr = listMemberNamesMergedFromSshGroups (loadAuthDir ./case2/device-ssh {});
       expected = builtins.map (x: "my-ssh-user-${x}") [ "a" "b" "c" ];
     };
+
+  testC4MemberNamesMergedFromAllGroups =
+    {
+      expr = listMemberNamesMergedFromSshGroups (loadAuthDir ./case4 {});
+      expected = builtins.map (x: "my-ssh-user-${x}") [ "a" "b" "c" "d" ];
+    };
+
+  testC4AuthorizedToDeviceUser =
+    {
+      # Reproduce a bug found in `mergeDeviceUserAuthorizedSshGroupsAndUsersAsSshUsersBundle`
+      # when merging multiple group refering to the same user.
+      # Ensure that `mergeDeviceUserAuthorizedSshGroupsAndUsersAsSshUsersBundle` is
+      # run by calling `listPubKeysContentForSshUsers`. Using `listUserNamesForSshUsers`
+      # won't exert the merge function because of laziness.
+      expr = listPubKeysContentForSshUsers (loadAuthDir ./case4 {}).deviceUsers."overlapping-groups-1";
+      expected = builtins.map (x: "my-ssh-user-${x}.pub") [ "a" "b" "c" "d" ];
+    };
 }
+

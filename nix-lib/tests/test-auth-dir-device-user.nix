@@ -161,4 +161,13 @@ in
         );
       expected = builtins.map (x: "my-ssh-user-${x}") [ "a" "b" "c" "d" "e" "f" ];
     };
+
+  testC4DevUserMergeOverlappingGroups =
+    {
+      expr =
+        listNamesOfSshUsersAuthorizedToDeviceUser (
+          loadAuthDirDeviceUser ./case4 "overlapping-groups-1" optsEmpty
+        );
+      expected = builtins.map (x: "my-ssh-user-${x}") [ "a" "b" "c" "d" ];
+    };
 }
