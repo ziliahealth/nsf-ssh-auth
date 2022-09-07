@@ -14,7 +14,7 @@ buildPythonPackage rec  {
   pname = "nsf-ssh-auth-cli";
   version = "0.1.0";
   src = nix-gitignore.gitignoreSourcePure ../.gitignore ./.;
-  buildInputs = [];
+  buildInputs = [ ];
 
   doCheck = false;
 
@@ -35,7 +35,8 @@ buildPythonPackage rec  {
     pyyaml
   ];
 
-  postInstall =  with nsf-shc-nix-lib; ''
+  postInstall = with nsf-shc-nix-lib; ''
+    buildPythonPath "$out"
     ${nsfShC.pkg.installClickExesBashCompletion [
       "nsf-ssh-auth-dir"
     ]}
